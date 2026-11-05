@@ -1531,7 +1531,14 @@ common_init_result_ptr common_init_from_params(common_params & params, bool mode
             common_batch batch = common_batch_get_one(lctx, tmp);
             std::vector<float> zeros;
             common_batch_set_zero_state(batch, model, zeros);
+            // select every expert for this one pass, so that the whole expert set is touched
+            // once, in order, instead of being rediscovered token by token (--no-warmup opts out)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+            llama_set_warmup(lctx, true);
             llama_process(lctx, LLAMA_PROCESS_TYPE_DECODE, batch.get());
+            llama_set_warmup(lctx, false);
+#pragma GCC diagnostic pop
         }
         llama_memory_clear(llama_get_memory(lctx), true);
         llama_synchronize(lctx);
